@@ -1,4 +1,4 @@
-# 로컬에 직접 설치한 PostgreSQL에 붙는다 (docker-compose 연동 제거됨).
+# 로컬에 직접 설치한 PostgreSQL에 붙는다.
 spring:
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:timmy_todo}

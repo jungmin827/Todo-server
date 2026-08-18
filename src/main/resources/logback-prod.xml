@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 
-    <!-- traceId는 TraceIdFilter가 MDC에 심는다 -->
     <property name="LOG_PATTERN"
-              value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%X{traceId}] %-5level %logger{36} - %msg%n"/>
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger{36} - %msg%n"/>
     <property name="LOG_DIR" value="${LOG_DIR:-logs}"/>
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">

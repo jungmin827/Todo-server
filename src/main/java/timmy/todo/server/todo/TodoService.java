@@ -2,6 +2,8 @@ package timmy.todo.server.todo;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import timmy.todo.server.common.ResponseData;
@@ -11,8 +13,6 @@ import timmy.todo.server.todo.dto.TodoInsertDto;
 import timmy.todo.server.todo.dto.TodoQueryDto;
 import timmy.todo.server.todo.dto.TodoResponseDto;
 import timmy.todo.server.todo.dto.TodoUpdateDto;
-
-import java.util.List;
 
 @Slf4j
 @Service
@@ -41,8 +41,9 @@ public class TodoService {
     }
 
     @Transactional(readOnly = true)
-    public List<TodoResponseDto> getTodoList(TodoQueryDto queryDto) {
-        return todoMapper.toResponseDtoList(todoRepository.findAll(queryDto));
+    public Page<TodoResponseDto> getTodoList(Pageable pageable, TodoQueryDto queryDto) {
+        return todoRepository.findAll(pageable, queryDto)
+                .map(todoMapper::toResponseDto);
     }
 
     // ========== UPDATE (수정) ==========

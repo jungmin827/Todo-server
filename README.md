@@ -5,7 +5,7 @@ Java 17 / Spring Boot 3.3.6 / Gradle (Groovy DSL) / PostgreSQL 16
 
 ## 사전 준비: 로컬 PostgreSQL
 
-docker-compose 연동은 제거됐다. 로컬에 직접 설치한 PostgreSQL에 붙는다.
+로컬에 직접 설치한 PostgreSQL에 붙는다.
 
 ```bash
 brew install postgresql@16
@@ -39,7 +39,7 @@ createdb -O timmy timmy_todo_test    # 테스트 전용 (개발 DB와 분리)
 |---|---|---|
 | 등록 | `POST /api/todos` | **201** + `TodoResponseDto` |
 | 단건 조회 | `GET /api/todos/{idx}` | 200 + `TodoResponseDto` |
-| 목록 조회 | `GET /api/todos?completed=true` | 200 + `List<TodoResponseDto>` (조건 없으면 **전체**) |
+| 목록 조회 | `GET /api/todos?page=0&size=20&completed=true` | 200 + `Page<TodoResponseDto>` |
 | 수정 | `PUT /api/todos/{idx}` | 200 + `TodoResponseDto` (null 필드는 기존 값 유지) |
 | 삭제 | `DELETE /api/todos/{idx}` | **200** + `ResponseData<Void>` (204 아님) |
 
@@ -59,12 +59,12 @@ timmy.todo.server
 ├── TodoApplication.java
 ├── config/                     # ★ 표준 영역
 │   ├── JpaConfig.java          # @EnableJpaAuditing + JPAQueryFactory
-│   └── OpenApiConfig.java
+│   ├── OpenApiConfig.java
+│   └── WebConfig.java          # Page 직렬화(VIA_DTO) + 페이지 크기 기본/상한
 ├── common/                     # ★ 표준 영역
 │   ├── AspectLogger.java       # AOP 자동 로깅
 │   ├── BaseCustomRepository.java
-│   ├── ResponseData.java / ResponseDataType.java
-│   └── TraceIdFilter.java      # MDC traceId
+│   └── ResponseData.java / ResponseDataType.java
 ├── exception/                  # ★ 표준 영역
 │   ├── ExceptionController.java    # 전역 핸들러 + 출구 로깅
 │   ├── ExceptionResponseDTO.java
@@ -92,15 +92,30 @@ timmy.todo.server
   개별 메서드의 `log.info`/`log.error` 금지 (`log.debug`만 허용)
 - 예외는 커스텀 예외로 throw하고 그대로 위로 흘린다. try/catch 금지
 
-### 표준에서 의도적으로 벗어난 부분
+### 목록 조회 페이징 · 정렬
 
-**목록 조회는 페이징하지 않고 전체를 반환한다.** `04_CONTROLLER_GUIDE.md`·`05_SERVICE_GUIDE.md`의
-목록 템플릿은 `Page<XxxResponseDto>` + `Pageable`을 요구하지만, 이 프로젝트는
-`List<TodoResponseDto>`를 반환한다 (요청에 따른 결정). `backend-review`가 위반으로 잡는 항목이니
-리뷰 결과를 볼 때 감안한다.
+`page` / `size` / `sort`로 제어한다.
 
-`TodoQueryDto` 검색 조건은 그대로 살아 있어서, 파라미터를 주면 필터링되고 안 주면 전체가 나온다.
-건수가 늘면 전체 행을 메모리에 올리므로, 규모가 커지면 페이징 복원을 검토해야 한다.
+```
+GET /api/todos?page=0&size=20&sort=title,asc&completed=true
+```
+
+응답은 `PagedModel` 형태다 (`config/WebConfig`의 `PageSerializationMode.VIA_DTO`):
+
+```json
+{"content":[...], "page":{"size":20,"number":0,"totalElements":5,"totalPages":1}}
+```
+
+- 기본값 `page=0`, `size=20`. `size` 상한은 **2000** (`config/WebConfig`에서 명시)
+- 검색 조건은 페이징 **전에** 적용되므로 `totalElements`는 조건에 맞는 전체 건수다
+- **정렬 가능 필드**: `idx`, `title`, `completed`, `registerDate`, `modifyDate`.
+  기본은 `idx` 내림차순(최신순)
+- 목록에 없는 필드로 정렬 요청하면 **조용히 무시하지 않고 400**을 낸다.
+  무시하면 클라이언트는 정렬이 먹은 줄 알고 서버는 다른 순서를 주는 상태가 되기 때문
+- 필드를 늘리려면 `TodoCustomRepositoryImpl.SORTABLE_PATHS`에 추가한다
+
+> 페이지를 넘길 때마다 `COUNT(*)`가 함께 나간다. 데이터가 커지면
+> `PageableExecutionUtils`로 count 생략을 검토할 것 (현재 규모에선 불필요).
 
 > `build.gradle`에 `lombok-mapstruct-binding:0.2.0`이 반드시 있어야 한다.
 > 빠지면 Lombok 게터 생성 전에 MapStruct가 돌아 **매퍼 구현체가 빈 껍데기로 생성된다.**
@@ -115,8 +130,11 @@ timmy.todo.server
 | Swagger UI | 열림 | 닫힘 |
 | logback | `logback-local.xml` | `logback-prod.xml` (일자별 롤링) |
 
-로그 패턴에 `[%X{traceId}]`가 박혀 있다. `TraceIdFilter`가 요청마다 MDC에 심고
-응답 헤더 `X-Request-Id`로 돌려준다 — 클라이언트가 보낸 값이 있으면 그대로 이어받는다.
+> **표준 이탈**: `10_LOGGING_AND_EXCEPTION.md`는 `common/TraceIdFilter.java`와
+> 로그 패턴의 `[%X{traceId}]`, 에러 응답의 `traceId` 필드를 요구하지만 이 프로젝트는 제거했다
+> (요청에 따른 결정). `backend-review`가 위반으로 잡는 항목이다.
+> 동시 요청이 늘면 한 요청이 남긴 로그(AspectLogger·Hibernate SQL·파라미터 바인딩)를
+> 서로 묶을 수단이 없다는 점은 감안해야 한다.
 
 ## 스키마 관리
 
@@ -130,22 +148,19 @@ Flyway가 단일 소스다. `ddl-auto: validate`라서 엔티티와 테이블이
 `V2__align_todo_to_truevalue_standard.sql`이 `todo_entity` → `todo`, `id` → `idx`,
 `created_date`/`modified_date` → `register_date`/`modify_date` 리네임을 수행한다.
 
-## Docker (앱 패키징 전용)
+## 배포
 
-DB 연동용 docker-compose는 제거했다. Dockerfile은 앱 이미지 빌드에만 쓴다.
+Docker 관련 파일(`Dockerfile`, `.dockerignore`, `compose.yaml`)은 모두 제거했다.
+배포는 `./gradlew bootJar`로 만든 jar를 직접 실행한다.
 
 ```bash
-docker build -t timmy-todo-app .
-docker run -p 8080:8080 \
-  -e DB_HOST=... -e DB_NAME=... -e DB_USERNAME=... -e DB_PASSWORD=... \
-  timmy-todo-app
+./gradlew bootJar
+SPRING_PROFILES_ACTIVE=prod \
+DB_HOST=... DB_NAME=... DB_USERNAME=... DB_PASSWORD=... \
+java -jar build/libs/timmy-todo-app-0.0.1-SNAPSHOT.jar
 ```
-
-멀티스테이지 빌드(gradle:8.10.2-jdk17 → eclipse-temurin:17-jre-jammy)이고
-`SPRING_PROFILES_ACTIVE=prod`가 기본으로 박혀 있다.
 
 ## 환경 메모 (이 머신에 맞춰 조정한 것)
 
 - **Gradle 8.10.2**: Boot 3.3의 Gradle 플러그인은 7.6.4~8.x만 지원한다. IntelliJ가 깔아둔 9.6으로는 빌드가 안 된다.
 - **springdoc 2.6.0**: 2.7 이상은 Boot 3.4 라인용이다.
-- **Dockerfile 런타임 이미지**: `eclipse-temurin:17-jre-alpine`은 arm64 이미지가 없어 jammy를 쓴다.
