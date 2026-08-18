@@ -3,7 +3,7 @@ FROM gradle:8.10.2-jdk17 AS build
 WORKDIR /app
 
 # 의존성 레이어를 소스와 분리해 캐시 적중률을 높인다
-COPY settings.gradle.kts build.gradle.kts gradle.properties ./
+COPY settings.gradle build.gradle gradle.properties ./
 RUN gradle dependencies --no-daemon --no-configuration-cache > /dev/null 2>&1 || true
 
 COPY src ./src
