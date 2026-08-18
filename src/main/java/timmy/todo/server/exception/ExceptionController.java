@@ -3,7 +3,6 @@ package timmy.todo.server.exception;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.MDC;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
@@ -18,7 +17,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
-import timmy.todo.server.common.TraceIdFilter;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -159,7 +157,6 @@ public class ExceptionController {
     private ExceptionResponseDTO body(HttpStatus status, String code,
                                       String message, HttpServletRequest request) {
         return ExceptionResponseDTO.builder()
-                .traceId(MDC.get(TraceIdFilter.TRACE_ID))
                 .status(status.value())
                 .code(code)
                 .message(message)

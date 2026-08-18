@@ -2,7 +2,6 @@ package timmy.todo.server.todo;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -11,6 +10,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -29,8 +30,6 @@ import timmy.todo.server.todo.dto.TodoInsertDto;
 import timmy.todo.server.todo.dto.TodoQueryDto;
 import timmy.todo.server.todo.dto.TodoResponseDto;
 import timmy.todo.server.todo.dto.TodoUpdateDto;
-
-import java.util.List;
 
 @Slf4j
 @Tag(name = "Todo", description = "Todo API")
@@ -81,16 +80,14 @@ public class TodoController {
     }
 
     @Operation(summary = "Todo 목록 조회",
-            description = "Todo 전체 목록을 조회하는 API. 검색 조건을 주지 않으면 DB의 모든 Todo를 반환한다")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "조회 성공",
-                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = TodoResponseDto.class))))
-    })
+            description = "Todo 목록을 페이지 단위로 조회하는 API. page/size로 페이지네이션한다 (기본 20건)")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "조회 성공")})
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE, headers = "X-API-VERSION=1")
-    public ResponseEntity<List<TodoResponseDto>> getTodoList(
+    public ResponseEntity<Page<TodoResponseDto>> getTodoList(
+            Pageable pageable,
             @Parameter(description = "Todo 검색 조건")
             @ModelAttribute TodoQueryDto queryDto) {
-        return ResponseEntity.ok(todoService.getTodoList(queryDto));
+        return ResponseEntity.ok(todoService.getTodoList(pageable, queryDto));
     }
 
     // ========== UPDATE (수정) ==========

@@ -19,7 +19,6 @@ import java.util.List;
 @Builder
 public class ExceptionResponseDTO {
 
-    private String traceId;
     private int status;
     private String code;
     private String message;
