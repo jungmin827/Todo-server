@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(node -e \"const p=require\\('./package.json'\\);console.log\\(JSON.stringify\\({deps:p.dependencies,dev:p.devDependencies},null,1\\)\\)\")",
+      "Bash(python3 -)",
+      "Bash(npm run *)",
+      "Bash(curl -s -o /dev/null -w \"테스트 데이터\\(id=4\\) 삭제: %{http_code}\\\\n\" -X DELETE http://localhost:5173/todo/4)",
+      "Bash(pkill -f \"TodoApplication\")",
+      "Bash(pkill -f \"GradleWrapperMain bootRun\")",
+      "Bash(pkill -f \"vite\")",
+      "Bash(lsof -nP -iTCP:5173 -sTCP:LISTEN)",
+      "Bash(lsof -nP -iTCP:8080 -sTCP:LISTEN)",
+      "Bash(docker compose *)"
+    ]
+  }
+}

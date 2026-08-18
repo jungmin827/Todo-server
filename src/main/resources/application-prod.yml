@@ -1,0 +1,17 @@
+# 기본값을 두지 않는다. 환경변수가 없으면 부팅 단계에서 바로 실패하는 편이 낫다.
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/${DB_NAME}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+logging:
+  level:
+    root: info
+
+# 운영에서는 API 문서를 닫아둔다
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

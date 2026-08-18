@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: timmy-todo-postgres
+    environment:
+      POSTGRES_DB: timmy_todo
+      POSTGRES_USER: timmy
+      POSTGRES_PASSWORD: timmy
+      TZ: Asia/Seoul
+    ports:
+      - "5432:5432"
+    volumes:
+      - timmy-todo-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U timmy -d timmy_todo"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  timmy-todo-pgdata:
