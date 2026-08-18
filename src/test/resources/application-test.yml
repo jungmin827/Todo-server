@@ -1,0 +1,11 @@
+# 테스트는 개발 DB와 분리된 로컬 PostgreSQL 데이터베이스를 쓴다.
+#   createdb -O timmy timmy_todo_test
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:timmy_todo_test}
+    username: ${DB_USERNAME:timmy}
+    password: ${DB_PASSWORD:timmy}
+
+  flyway:
+    enabled: true
+    clean-disabled: false

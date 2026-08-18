@@ -6,6 +6,7 @@ spring:
     password: ${DB_PASSWORD}
 
 logging:
+  config: classpath:logback-prod.xml
   level:
     root: info
 

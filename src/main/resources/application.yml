@@ -8,9 +8,12 @@ spring:
   jpa:
     open-in-view: false
     hibernate:
+      # 표준 고정. 스키마는 Flyway 마이그레이션 스크립트로만 관리한다.
       ddl-auto: validate
     properties:
       hibernate:
+        jdbc:
+          time_zone: Asia/Seoul
         default_batch_fetch_size: 100
 
   flyway:
@@ -19,9 +22,18 @@ spring:
 
   jackson:
     default-property-inclusion: non_null
+    time-zone: Asia/Seoul
 
 server:
   port: ${SERVER_PORT:8080}
+  servlet:
+    encoding:
+      charset: UTF-8
+      force: true
+
+springdoc:
+  swagger-ui:
+    path: /timmy-todo-app.html
 
 management:
   endpoints:
